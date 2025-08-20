@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RootNamespace>FixSender5</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="Config\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="QuickFix">
+      <HintPath>Config\QuickFix.dll</HintPath>
+    </Reference>
+    <Reference Include="QuickFix.FIX50">
+      <HintPath>Config\QuickFix.FIX50.dll</HintPath>
+    </Reference>
+    <Reference Include="QuickFix.FIXT11">
+      <HintPath>Config\QuickFix.FIXT11.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NLog" Version="6.0.3" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="6.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
