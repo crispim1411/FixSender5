@@ -47,15 +47,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     private async void OnClickInitiator(object sender, RoutedEventArgs _)
-    {
+    { 
         try
         {
             var initiator = new Initiator();
             initiator.OnSessionLogon += OnSessionLogon;
             initiator.OnSessionLogoff += OnSessionLogoff;
-            
-            await Task.Run(() => initiator.Start(_cts.Token), _cts.Token);
+
+            await initiator.Start(_cts.Token);
             _logger.Info("Initiator stopped!");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info("Initiator operation was canceled!");
         }
         catch (Exception e)
         {
@@ -70,6 +74,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             var acceptor = new Acceptor();
             await Task.Run(() => acceptor.Start(_cts.Token), _cts.Token);
             _logger.Info("Acceptor stopped!");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info("Acceptor operation was canceled!");
         }
         catch (Exception e)
         {

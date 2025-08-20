@@ -56,7 +56,7 @@ public class Acceptor : IApplication
         return messageString.Replace("\x01", "|");
     }
     
-    public void Start(CancellationToken cancellationToken)
+    public async Task Start(CancellationToken cancellationToken)
     {
         var settings = new SessionSettings(_configPath);
 
@@ -64,13 +64,21 @@ public class Acceptor : IApplication
         var logFactory = new FileLogFactory(settings);
         var acceptor = new ThreadedSocketAcceptor(this, storeFactory, settings, logFactory);
 
-        _logger.Info("Iniciando o FIX acceptor...");
-        acceptor.Start();
-        
-        while (!cancellationToken.IsCancellationRequested)
-            Task.Delay(1000, cancellationToken).Wait(cancellationToken);
-        _logger.Info("FIX acceptor cancelado.");
-        acceptor.Stop();
-        acceptor.Dispose();
+        try
+        {
+            _logger.Info("Iniciando o FIX acceptor...");
+            acceptor.Start();
+
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info("FIX acceptor cancelado.");
+        }
+        finally
+        {
+            acceptor.Stop();
+            acceptor.Dispose();
+        }
     }
 }

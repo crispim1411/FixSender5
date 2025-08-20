@@ -63,20 +63,28 @@ public class Initiator : IApplication
         return messageString.Replace("\x01", "|");
     }
     
-    public void Start(CancellationToken cancellationToken)
+    public async Task Start(CancellationToken cancellationToken)
     {
         var settings = new SessionSettings(_configPath);
         var storeFactory = new FileStoreFactory(settings);
         var logFactory = new FileLogFactory(settings);
         var initiator = new SocketInitiator(this, storeFactory, settings, logFactory);
 
-        _logger.Info("Iniciando o Initiator...");
-        initiator.Start();
-        
-        while (!cancellationToken.IsCancellationRequested)
-            Task.Delay(1000, cancellationToken).Wait(cancellationToken);    
-        _logger.Info("FIX initiator cancelado.");
-        initiator.Stop();
-        initiator.Dispose();
+        try
+        {
+            _logger.Info("Iniciando o Initiator...");
+            initiator.Start();
+
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info("FIX initiator cancelado.");
+        }
+        finally
+        {
+            initiator.Stop();
+            initiator.Dispose();
+        }
     }
 }
