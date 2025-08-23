@@ -3,24 +3,241 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FixSender5"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid Margin="100">
+        Title="FIX Connection" Height="500" Width="600">
+    
+    <Window.Resources>
+        <!-- Estilos para os controles -->
+        <Style x:Key="LabelStyle" TargetType="Label">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,2"/>
+        </Style>
+        
+        <Style x:Key="TextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="5,0"/>
+        </Style>
+        
+        <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="#FF0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="3"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF106EBE"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FF005A9E"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#FFCCCCCC"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="StatusLabelStyle" TargetType="Label">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#FFFF4444"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="MinWidth" Value="60"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="ON">
+                    <Setter Property="Background" Value="#FF44AA44"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        <!-- Título -->
+        <TextBlock Grid.Row="0" 
+                   Text="FIX Protocol Connection" 
+                   FontSize="20" 
+                   FontWeight="Bold" 
+                   HorizontalAlignment="Center" 
+                   Margin="0,0,0,20"/>
         
-        <Button Grid.Column="0" Height="50" Click="OnClickInitiator">Initiator</Button>
-        <Button Grid.Column="1" Height="50" Click="OnClickAcceptor">Acceptor</Button>
-        <StackPanel Grid.Row="1" Orientation="Horizontal">
-            <Label>Status:</Label>
-            <Label Content="{Binding Path=Status}"/>
-        </StackPanel>
+        <!-- Formulário de Configuração -->
+        <Border Grid.Row="1" 
+                BorderBrush="#FFDDDDDD" 
+                BorderThickness="1" 
+                CornerRadius="5" 
+                Background="#FFFAFAFA"
+                Padding="20">
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Host -->
+                <Label Grid.Row="0" Grid.Column="0" 
+                       Content="Host:" 
+                       Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="0" Grid.Column="1" 
+                         Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" 
+                         MaxLength="100"
+                         Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Enter the server hostname or IP address (max 100 characters)"/>
+                
+                <!-- Port -->
+                <Label Grid.Row="1" Grid.Column="0" 
+                       Content="Port:" 
+                       Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="1" Grid.Column="1" 
+                         Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" 
+                         Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Enter the port number (1-65535)">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding ConnectCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+                
+                <!-- Sender -->
+                <Label Grid.Row="2" Grid.Column="0" 
+                       Content="Sender:" 
+                       Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="2" Grid.Column="1" 
+                         Text="{Binding Sender, UpdateSourceTrigger=PropertyChanged}" 
+                         MaxLength="50"
+                         Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Enter the sender company ID (max 50 characters)"/>
+                
+                <!-- Target -->
+                <Label Grid.Row="3" Grid.Column="0" 
+                       Content="Target:" 
+                       Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="3" Grid.Column="1" 
+                         Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}" 
+                         MaxLength="50"
+                         Style="{StaticResource TextBoxStyle}"
+                         ToolTip="Enter the target company ID (max 50 characters)"/>
+                
+                <!-- Type -->
+                <Label Grid.Row="4" Grid.Column="0" 
+                       Content="Type:" 
+                       Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Row="4" Grid.Column="1"
+                          SelectedItem="{Binding ConnectionType}"
+                          Style="{StaticResource ComboBoxStyle}"
+                          ToolTip="Select connection type">
+                    <local:ConnectionType>Acceptor</local:ConnectionType>
+                    <local:ConnectionType>Initiator</local:ConnectionType>
+                </ComboBox>
+            </Grid>
+        </Border>
+        
+        <!-- Botão Connect -->
+        <Button Grid.Row="2" 
+                Content="CONNECT"
+                Click="OnClick"
+                Style="{StaticResource ButtonStyle}"
+                Margin="0,20,0,10"
+                IsEnabled="{Binding CanConnect}"/>
+        
+        <!-- Status Bar -->
+        <Border Grid.Row="3" 
+                Background="#FFF0F0F0" 
+                BorderBrush="#FFDDDDDD" 
+                BorderThickness="0,1,0,0" 
+                Padding="10">
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Column="0" 
+                       Content="Connection Status:" 
+                       FontWeight="SemiBold" 
+                       VerticalAlignment="Center"/>
+                       
+                <Border Grid.Column="1" 
+                        CornerRadius="3"
+                        MinWidth="60"
+                        HorizontalAlignment="Left">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="#FFFF4444"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Status}" Value="ON">
+                                    <Setter Property="Background" Value="#FF44AA44"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Label Content="{Binding Status}" 
+                           FontWeight="Bold"
+                           FontSize="14"
+                           Padding="10,5"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="White"
+                           Background="Transparent"/>
+                </Border>
+                
+                <!-- Informações adicionais -->
+                <StackPanel Grid.Column="3" 
+                           Orientation="Horizontal" 
+                           VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Status}" 
+                               Foreground="#FF666666" 
+                               VerticalAlignment="Center"
+                               Margin="10,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
