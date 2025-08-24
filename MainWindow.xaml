@@ -67,22 +67,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        
-        <Style x:Key="StatusLabelStyle" TargetType="Label">
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Background" Value="#FFFF4444"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="MinWidth" Value="60"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Status}" Value="ON">
-                    <Setter Property="Background" Value="#FF44AA44"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+
     </Window.Resources>
     
     <Grid Margin="20">
@@ -250,32 +235,47 @@
                                 <DataTemplate>
                                     <Border Padding="5" 
                                             Margin="2,1"
-                                            Background="{Binding Direction, Converter={StaticResource DirectionToBrushConverter}}"
-                                            CornerRadius="3">
-                                        <Grid>
+                                            Background="#FFF9F9F9"
+                                            BorderBrush="#FFE0E0E0"
+                                            BorderThickness="0,0,0,1"
+                                            CornerRadius="3" d:DataContext="{d:DesignInstance }">
+                                        <Grid VerticalAlignment="Bottom">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="120"/>
-                                                <ColumnDefinition Width="80"/>
-                                                <ColumnDefinition Width="100"/>
-                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>  <!-- Ícone de direção -->
+                                                <ColumnDefinition Width="120"/> <!-- Timestamp -->
+                                                <ColumnDefinition Width="100"/> <!-- MessageType -->
+                                                <ColumnDefinition Width="*"/>   <!-- Description -->
                                             </Grid.ColumnDefinitions>
                                             
+                                            <!-- Ícone de direção -->
                                             <TextBlock Grid.Column="0" 
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       FontFamily="Segoe UI Symbol"
+                                                       FontSize="14"
+                                                       FontWeight="Bold"
+                                                       Margin="0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Direction}" Value="Incoming">
+                                                                <Setter Property="Text" Value="▶"/>
+                                                                <Setter Property="Foreground" Value="#FFD32F2F"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Direction}" Value="Outgoing">
+                                                                <Setter Property="Text" Value="◀"/>
+                                                                <Setter Property="Foreground" Value="#FF388E3C"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            
+                                            <TextBlock Grid.Column="1" 
                                                        Text="{Binding Timestamp, StringFormat=HH:mm:ss.fff}" 
                                                        FontFamily="Consolas"
-                                                       FontSize="11"
+                                                       FontSize="13"
                                                        Foreground="#FF666666"/>
-                                            
-                                            <Border Grid.Column="1" 
-                                                    Background="{Binding Direction, Converter={StaticResource DirectionToTagBrushConverter}}"
-                                                    CornerRadius="2"
-                                                    Padding="4,2"
-                                                    HorizontalAlignment="Left">
-                                                <TextBlock Text="{Binding Direction}" 
-                                                           FontSize="10"
-                                                           FontWeight="Bold"
-                                                           Foreground="White"/>
-                                            </Border>
                                             
                                             <TextBlock Grid.Column="2" 
                                                        Text="{Binding MessageType}" 
@@ -285,7 +285,8 @@
                                             <TextBlock Grid.Column="3" 
                                                        Text="{Binding Description}" 
                                                        FontSize="12"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Bottom"/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -418,24 +419,16 @@
                             <Button Content="Clear" 
                                     Click="ClearSendMessageClick"
                                     Background="#FF6C757D"
-                                    Foreground="White"
-                                    BorderThickness="0"
                                     Padding="12,8"
                                     Margin="0,0,10,0"
                                     MinWidth="70"
-                                    Height="35"
-                                    FontWeight="SemiBold"
                                     Style="{StaticResource ButtonStyle}"/>
                 
                             <Button Content="Load Template" 
                                     Click="LoadSendMessageClick"
                                     Background="#FF17A2B8"
-                                    Foreground="White"
-                                    BorderThickness="0"
                                     Padding="12,8"
                                     MinWidth="120"
-                                    Height="35"
-                                    FontWeight="SemiBold"
                                     Style="{StaticResource ButtonStyle}"/>
                         </StackPanel>
                         
@@ -444,8 +437,6 @@
                                 Content="SEND"
                                 Click="SendMessageClick"
                                 Background="#FF28A745"
-                                Foreground="White"
-                                BorderThickness="0"
                                 Padding="20,8"
                                 FontWeight="Bold"
                                 FontSize="14"

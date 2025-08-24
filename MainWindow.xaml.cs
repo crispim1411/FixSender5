@@ -198,10 +198,7 @@ public partial class MainWindow : INotifyPropertyChanged
     
     public string Status => _isConnected ? "ON" : "OFF";
 
-    public bool CanSendMessage => IsConnected
-                                  && !IsSending; 
-        // && !string.IsNullOrWhiteSpace(MessageToSend) 
-        // && EstimatedFieldCount >= 3;
+    public bool CanSendMessage => IsConnected && !IsSending; 
     
     public bool CanConnect => !IsConnected 
         && Port is > 0 and <= 65535
@@ -281,6 +278,8 @@ public partial class MainWindow : INotifyPropertyChanged
                     };
                     _acceptor.OnSessionLogon += OnSessionLogon;
                     _acceptor.OnSessionLogout += OnSessionLogout;
+                    _acceptor.OnInboundMessage += OnInboundMessage;
+                    _acceptor.OnOutboundMessage += OnOutboundMessage;
                     await Task.Run(() => _acceptor.Start(_cts.Token), _cts.Token);
                     _logger.Info("Acceptor stopped!");
                     break;
@@ -337,9 +336,15 @@ public partial class MainWindow : INotifyPropertyChanged
         if (sender is not ListViewItem { DataContext: FixMessage message }) 
             return;
         
-        // Mostrar janela com mensagem completa
-        var messageWindow = new MessageDetailWindow(message);
-        messageWindow.ShowDialog();
+        try
+        {
+            var messageWindow = new MessageDetailWindow(message);
+            messageWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Error dragging message: {ex.Message}");
+        }
     }
     
     private void ClearSendMessageClick(object sender, RoutedEventArgs routedEventArgs)
@@ -350,16 +355,16 @@ public partial class MainWindow : INotifyPropertyChanged
     private void LoadSendMessageClick(object sender, RoutedEventArgs routedEventArgs)
     {
         // Templates de exemplo
-        var templates = new Dictionary<string, string>
-        {
-            ["Heartbeat"] = @"8=FIX.4.4\x019=XX\x0135=0\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x0110=XXX\x01",
-            ["Test Request"] = @"8=FIX.4.4\x019=XX\x0135=1\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x01112=TESTID\x0110=XXX\x01",
-            ["New Order"] = @"8=FIX.4.4\x019=XX\x0135=D\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x0111=CLORDID\x0155=SYMBOL\x0154=1\x0140=2\x0138=100\x0144=25.50\x0110=XXX\x01"
-        };
-    
-        // Aqui você poderia mostrar um diálogo para seleção
-        // Por simplicidade, vamos usar Test Request como padrão
-        MessageToSend = templates["Test Request"];
+        // var templates = new Dictionary<string, string>
+        // {
+        //     ["Heartbeat"] = @"8=FIX.4.4\x019=XX\x0135=0\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x0110=XXX\x01",
+        //     ["Test Request"] = @"8=FIX.4.4\x019=XX\x0135=1\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x01112=TESTID\x0110=XXX\x01",
+        //     ["New Order"] = @"8=FIX.4.4\x019=XX\x0135=D\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x0111=CLORDID\x0155=SYMBOL\x0154=1\x0140=2\x0138=100\x0144=25.50\x0110=XXX\x01"
+        // };
+        //
+        // // Aqui você poderia mostrar um diálogo para seleção
+        // // Por simplicidade, vamos usar Test Request como padrão
+        // MessageToSend = templates["Test Request"];
     }
 
     private async void SendMessageClick(object sender, RoutedEventArgs routedEventArgs)
@@ -371,20 +376,15 @@ public partial class MainWindow : INotifyPropertyChanged
             _logger.Info("Attempting to send FIX message");
         
             // Processar mensagem antes de enviar
-            // var processedMessage = ProcessMessageForSending(MessageToSend);
-        
-            // Simular envio (substitua pela lógica real de envio)
-            await Task.Delay(1000); // Simular latência de rede
+            var processedMessage = ProcessMessageForSending(MessageToSend);
+            if (processedMessage == null)
+            {
+                MessageToSend = "Error";
+                return;
+            }
         
             // Aqui você implementaria o envio real da mensagem
-            // Session.SendToTarget(message, sessionId);
-        
-            // Adicionar mensagem enviada à lista
-            // OnMessageReceived(processedMessage, MessageDirection.Outgoing);
-            
-            _acceptor?.SendMessage();
-        
-            _logger.Info("FIX message sent successfully");
+            _acceptor?.SendMessage(processedMessage);
         
             // Limpar campo após envio bem-sucedido
             MessageToSend = string.Empty;
@@ -399,16 +399,17 @@ public partial class MainWindow : INotifyPropertyChanged
         }
     }
     
-    private string ProcessMessageForSending(string message)
+    private Message? ProcessMessageForSending(string message)
     {
-        // Substituir ^A por SOH real se necessário
-        var processed = message.Replace("^A", "\x01");
-    
-        // Adicionar SOH no final se não tiver
-        if (!processed.EndsWith("\x01"))
-            processed += "\x01";
-    
-        return processed;
+        try
+        {
+            return new Message(message);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Error processing message to send: {ex.Message}");
+        }
+        return null;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

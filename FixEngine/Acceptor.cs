@@ -21,8 +21,8 @@ public class Acceptor : IApplication
     
     public event Action? OnSessionLogon;
     public event Action? OnSessionLogout;
-    public event Action? OnInboundMessage;
-    public event Action? OnOutboundMessage;
+    public event Action<Message>? OnInboundMessage;
+    public event Action<Message>? OnOutboundMessage;
 
     public void ToAdmin(Message message, SessionID sessionId)
     {
@@ -36,11 +36,13 @@ public class Acceptor : IApplication
 
     public void ToApp(Message message, SessionID sessionId)
     {
+        OnOutboundMessage?.Invoke(message);
         _logger.Info($"[ToApp] Acceptor - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
     public void FromApp(Message message, SessionID sessionId)
     {
+        OnInboundMessage?.Invoke(message);
         _logger.Info($"[FromApp] Acceptor - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
@@ -69,14 +71,8 @@ public class Acceptor : IApplication
         return messageString.Replace("\x01", "|");
     }
 
-    public void SendMessage()
+    public void SendMessage(Message message)
     {
-        var message = new NewOrderSingle(
-            new ClOrdID("1234"),
-            new Side(Side.BUY),
-            new TransactTime(DateTime.Now),
-            new OrdType(OrdType.MARKET));
-        
         while (true)
         {
             if (_sessionId != null && Session.SendToTarget(message, _sessionId))
