@@ -18,6 +18,8 @@ public class Initiator : IApplication
     
     public event Action? OnSessionLogon;
     public event Action? OnSessionLogout;
+    public event Action<Message>? OnInboundMessage;
+    public event Action<Message>? OnOutboundMessage;
     
 
     public void ToAdmin(Message message, SessionID sessionId)
@@ -32,11 +34,13 @@ public class Initiator : IApplication
 
     public void ToApp(Message message, SessionID sessionId)
     {
+        OnOutboundMessage?.Invoke(message);
         _logger.Info($"[ToApp] Initiator - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
     public void FromApp(Message message, SessionID sessionId)
     {
+        OnInboundMessage?.Invoke(message);
         _logger.Info($"[FromApp] Initiator - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 

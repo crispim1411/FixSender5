@@ -1,7 +1,10 @@
 using NLog;
 using QuickFix;
+using QuickFix.Fields;
+using QuickFix.FIX50;
 using QuickFix.Logger;
 using QuickFix.Store;
+using Message = QuickFix.Message;
 
 namespace FixSender5.FixEngine;
 
@@ -14,9 +17,12 @@ public class Acceptor : IApplication
     public string TargetCompId { get; set; }
     public int Port { get; set; }
     public string Host { get; set; }
+    private SessionID? _sessionId;
     
     public event Action? OnSessionLogon;
     public event Action? OnSessionLogout;
+    public event Action? OnInboundMessage;
+    public event Action? OnOutboundMessage;
 
     public void ToAdmin(Message message, SessionID sessionId)
     {
@@ -52,6 +58,7 @@ public class Acceptor : IApplication
     public void OnLogon(SessionID sessionId)
     {
         OnSessionLogon?.Invoke();
+        _sessionId = sessionId;
         _logger.Info($"[OnLogon] Acceptor - Session logged on: {sessionId}");
     }
     
@@ -60,6 +67,22 @@ public class Acceptor : IApplication
         // Converte a mensagem FIX para um formato customizado com o separador "|"
         var messageString = message.ToString();
         return messageString.Replace("\x01", "|");
+    }
+
+    public void SendMessage()
+    {
+        var message = new NewOrderSingle(
+            new ClOrdID("1234"),
+            new Side(Side.BUY),
+            new TransactTime(DateTime.Now),
+            new OrdType(OrdType.MARKET));
+        
+        while (true)
+        {
+            if (_sessionId != null && Session.SendToTarget(message, _sessionId))
+                break;
+            Task.Delay(1000).Wait(1000);
+        }
     }
     
     public async Task Start(CancellationToken cancellationToken)

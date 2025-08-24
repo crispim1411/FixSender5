@@ -1,0 +1,212 @@
+<Window x:Class="FixSender5.MessageDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FIX Message Details" 
+        Height="600" 
+        Width="800"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="CanResize">
+    
+    <Window.Resources>
+        <Style x:Key="HeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+        
+        <Style x:Key="ValueStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        
+        <Style x:Key="CopyButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#FF0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="#FFF8F9FA" 
+                BorderBrush="#FFDDDDDD" 
+                BorderThickness="1" 
+                CornerRadius="5" 
+                Padding="15"
+                Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding MessageType}" 
+                               FontSize="18" 
+                               FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Description}" 
+                               FontSize="14" 
+                               Foreground="#FF666666"
+                               Margin="0,5,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <TextBlock Text="Direction: " FontWeight="SemiBold"/>
+                        <Border Background="{Binding DirectionColor}" 
+                                Padding="6,2" 
+                                CornerRadius="3">
+                            <TextBlock Text="{Binding Direction}" 
+                                       Foreground="White" 
+                                       FontWeight="Bold"
+                                       FontSize="11"/>
+                        </Border>
+                        <TextBlock Text="Time: " FontWeight="SemiBold" Margin="20,0,0,0"/>
+                        <TextBlock Text="{Binding Timestamp, StringFormat=yyyy-MM-dd HH:mm:ss.fff}"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <Button Grid.Column="1" 
+                        Content="✕ Close" 
+                        Click="CloseWindow"
+                        Style="{StaticResource CopyButtonStyle}"
+                        Background="#FFDC3545"/>
+            </Grid>
+        </Border>
+        
+        <!-- Content -->
+        <TabControl Grid.Row="1">
+            <!-- Aba Parsed Fields -->
+            <TabItem Header="Parsed Fields">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="FIX Message Fields" Style="{StaticResource HeaderStyle}"/>
+                        <Button Content="Copy Fields" 
+                                Click="CopyFields"
+                                Style="{StaticResource CopyButtonStyle}"/>
+                    </StackPanel>
+                    
+                    <Border Grid.Row="1" 
+                            BorderBrush="#FFDDDDDD" 
+                            BorderThickness="1" 
+                            CornerRadius="3">
+                        <ListView ItemsSource="{Binding ParsedFields}"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Tag" Width="80" DisplayMemberBinding="{Binding Tag}"/>
+                                    <GridViewColumn Header="Field Name" Width="200" DisplayMemberBinding="{Binding Name}"/>
+                                    <GridViewColumn Header="Value" Width="300" DisplayMemberBinding="{Binding Value}"/>
+                                    <GridViewColumn Header="Description" Width="250" DisplayMemberBinding="{Binding Description}"/>
+                                </GridView>
+                            </ListView.View>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#FFF0F8FF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                        </ListView>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- Aba Raw Message -->
+            <TabItem Header="Raw Message">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Raw FIX Message" Style="{StaticResource HeaderStyle}"/>
+                        <Button Content="Copy Raw" 
+                                Click="CopyRawMessage"
+                                Style="{StaticResource CopyButtonStyle}"/>
+                        <Button Content="Copy Formatted" 
+                                Click="CopyFormattedMessage"
+                                Style="{StaticResource CopyButtonStyle}"/>
+                    </StackPanel>
+                    
+                    <Border Grid.Row="1" 
+                            BorderBrush="#FFDDDDDD" 
+                            BorderThickness="1" 
+                            CornerRadius="3"
+                            Background="#FFFAFAFA">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                                      HorizontalScrollBarVisibility="Auto"
+                                      Padding="10">
+                            <StackPanel>
+                                <!-- Raw Message -->
+                                <TextBlock Text="Raw Message:" 
+                                           FontWeight="Bold" 
+                                           Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding RawMessage}" 
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         FontFamily="Consolas"
+                                         FontSize="12"
+                                         Background="White"
+                                         BorderBrush="#FFCCCCCC"
+                                         Padding="8"
+                                         Margin="0,0,0,15"/>
+                                
+                                <!-- Formatted Message -->
+                                <TextBlock Text="Formatted Message:" 
+                                           FontWeight="Bold" 
+                                           Margin="0,0,0,5"/>
+                                <TextBox Text="{Binding FormattedMessage}" 
+                                         IsReadOnly="True"
+                                         TextWrapping="Wrap"
+                                         FontFamily="Consolas"
+                                         FontSize="12"
+                                         Background="White"
+                                         BorderBrush="#FFCCCCCC"
+                                         Padding="8"
+                                         MinHeight="200"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        
+        <!-- Footer -->
+        <Border Grid.Row="2" 
+                Background="#FFF8F9FA" 
+                BorderBrush="#FFDDDDDD" 
+                BorderThickness="1,1,1,0" 
+                Padding="15"
+                Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Export Message" 
+                        Click="ExportMessage"
+                        Style="{StaticResource CopyButtonStyle}"
+                        Background="#FF28A745"/>
+                <Button Content="Close" 
+                        Click="CloseWindow"
+                        Style="{StaticResource CopyButtonStyle}"
+                        Background="#FF6C757D"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
+
