@@ -23,6 +23,13 @@ public enum MessageDirection
     Outgoing
 }
 
+public enum ConnectionState 
+{
+    Disconnected,
+    Connecting,
+    Connected
+}
+
 public class FixMessage
 {
     public DateTime Timestamp { get; set; }
@@ -38,7 +45,7 @@ public class FixMessage
 public partial class MainWindow : INotifyPropertyChanged
 {
     private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-    private readonly CancellationTokenSource _cts = new();
+    private CancellationTokenSource _cts;
     
     private Acceptor? _acceptor;
     private Initiator? _initiator; 
@@ -104,20 +111,6 @@ public partial class MainWindow : INotifyPropertyChanged
         }
     }
     
-    private bool _isConnected = false;
-    public bool IsConnected
-    {
-        get => _isConnected;
-        set
-        {
-            if (value == _isConnected) return;
-            _isConnected = value;
-            OnPropertyChanged(nameof(Status));
-            OnPropertyChanged(nameof(CanConnect));
-            OnPropertyChanged(nameof(CanSendMessage));
-        }
-    }
-    
     private FixMessage? _selectedMessage;
     public FixMessage? SelectedMessage
     {
@@ -126,7 +119,7 @@ public partial class MainWindow : INotifyPropertyChanged
         {
             if (value == _selectedMessage) return;
             _selectedMessage = value;
-            OnPropertyChanged(nameof(SelectedMessage));
+            OnPropertyChanged();
         }
     }
     
@@ -138,14 +131,13 @@ public partial class MainWindow : INotifyPropertyChanged
         {
             if (value == _messageToSend) return;
             _messageToSend = value;
-            OnPropertyChanged(nameof(EstimatedFieldCount));
             OnPropertyChanged(nameof(MessageValidationText));
             OnPropertyChanged(nameof(ValidationColor));
             OnPropertyChanged(nameof(CanSendMessage));
         }
     }
     
-    private bool _isSending = false;
+    private bool _isSending;
     public bool IsSending
     {
         get => _isSending;
@@ -157,10 +149,6 @@ public partial class MainWindow : INotifyPropertyChanged
         }
     }
     
-    public int EstimatedFieldCount => string.IsNullOrEmpty(MessageToSend) 
-        ? 0 
-        : MessageToSend.Split(["\x01", "^"], StringSplitOptions.RemoveEmptyEntries).Length;
-
     public string MessageValidationText
     {
         get
@@ -168,13 +156,9 @@ public partial class MainWindow : INotifyPropertyChanged
             if (string.IsNullOrWhiteSpace(MessageToSend))
                 return "";
             
-            if (EstimatedFieldCount < 3)
-                return "⚠ Message seems incomplete";
-            
-            if (MessageToSend.Contains("35="))
-                return "✓ Valid FIX structure detected";
-            
-            return "⚠ No MsgType (35) found";
+            return MessageToSend.Contains("35=") 
+                ? "✓ Valid FIX structure detected" 
+                : "⚠ No MsgType (35) found";
         }
     }
 
@@ -196,11 +180,30 @@ public partial class MainWindow : INotifyPropertyChanged
         ? "No messages received yet" 
         : $"Total: {Messages.Count} messages";
     
-    public string Status => _isConnected ? "ON" : "OFF";
-
-    public bool CanSendMessage => IsConnected && !IsSending; 
+    private ConnectionState _status = ConnectionState.Disconnected;
+    public ConnectionState Status 
+    {
+        get => _status;
+        set 
+        {
+            if (value == _status) return;
+            _status = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ButtonText));
+        }
+    }
     
-    public bool CanConnect => !IsConnected 
+    public string ButtonText => 
+        Status switch 
+        {
+            ConnectionState.Connected => "Disconnect",
+            ConnectionState.Connecting => "Connecting...",
+            ConnectionState.Disconnected => "Connect",
+            _ => ""
+        };
+        
+    public bool CanSendMessage => Status == ConnectionState.Connected && !IsSending; 
+    public bool CanConnect => Status == ConnectionState.Disconnected 
         && Port is > 0 and <= 65535
         && !string.IsNullOrWhiteSpace(Host)
         && !string.IsNullOrWhiteSpace(Sender)
@@ -218,12 +221,12 @@ public partial class MainWindow : INotifyPropertyChanged
 
     private void OnSessionLogon()
     {
-        IsConnected = true;
+        Status = ConnectionState.Connected;
     }
     
     private void OnSessionLogout()
     {
-        IsConnected = false;
+        Status = ConnectionState.Disconnected;
     }
 
     private void OnInboundMessage(Message rawMessage)
@@ -261,10 +264,36 @@ public partial class MainWindow : INotifyPropertyChanged
         return message;
     }
 
-    private async void OnClick(object sender, RoutedEventArgs _)
+    private void OnConnectionButtonClick(object sender, RoutedEventArgs _)
+    {
+        var currentStatus = Status;
+        Status = ConnectionState.Connecting;
+        switch (currentStatus)
+        {
+            case ConnectionState.Disconnected:
+                Status = ConnectionState.Connecting;
+                Connect();
+                break;
+            case ConnectionState.Connected:
+            case ConnectionState.Connecting:
+                Disconnect(); 
+                break;
+        }
+    }
+
+    private void Disconnect()
+    {
+        _cts?.Cancel();
+        Status = ConnectionState.Disconnected;
+    }
+
+    private async void Connect()
     {
         try
         {
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+            
             switch (_connectionType)
             {
                 case ConnectionType.Acceptor:
@@ -350,21 +379,6 @@ public partial class MainWindow : INotifyPropertyChanged
     private void ClearSendMessageClick(object sender, RoutedEventArgs routedEventArgs)
     {
         MessageToSend = string.Empty;
-    }
-
-    private void LoadSendMessageClick(object sender, RoutedEventArgs routedEventArgs)
-    {
-        // Templates de exemplo
-        // var templates = new Dictionary<string, string>
-        // {
-        //     ["Heartbeat"] = @"8=FIX.4.4\x019=XX\x0135=0\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x0110=XXX\x01",
-        //     ["Test Request"] = @"8=FIX.4.4\x019=XX\x0135=1\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x01112=TESTID\x0110=XXX\x01",
-        //     ["New Order"] = @"8=FIX.4.4\x019=XX\x0135=D\x0149=SENDER\x0156=TARGET\x0134=X\x0152=TIMESTAMP\x0111=CLORDID\x0155=SYMBOL\x0154=1\x0140=2\x0138=100\x0144=25.50\x0110=XXX\x01"
-        // };
-        //
-        // // Aqui você poderia mostrar um diálogo para seleção
-        // // Por simplicidade, vamos usar Test Request como padrão
-        // MessageToSend = templates["Test Request"];
     }
 
     private async void SendMessageClick(object sender, RoutedEventArgs routedEventArgs)

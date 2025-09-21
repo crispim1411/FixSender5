@@ -175,13 +175,39 @@
                         </Grid>
                     </Border>
                     
-                    <!-- Botão Connect -->
+                    <!-- Connect -->
                     <Button Grid.Row="1" 
-                            Content="CONNECT"
-                            Click="OnClick"
-                            Style="{StaticResource ButtonStyle}"
+                            Click="OnConnectionButtonClick"
                             Margin="0,20,0,10"
-                            IsEnabled="{Binding CanConnect}"/>
+                            IsEnabled="{Binding CanConnect}"
+                            MinWidth="120">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+                                <Style.Triggers>
+                                    <!-- Status: OFF -> Show CONNECT (Green) -->
+                                    <DataTrigger Binding="{Binding Status}" Value="Disconnected">
+                                        <Setter Property="Content" Value="{Binding ButtonText}"/>
+                                        <Setter Property="Background" Value="#FF0078D4"/>
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                
+                                    <!-- Status: CONNECTING -> Show CONNECTING (Green Disabled) -->
+                                    <DataTrigger Binding="{Binding Status}" Value="Connecting">
+                                        <Setter Property="Content" Value="{Binding ButtonText}"/>
+                                        <Setter Property="Background" Value="#FF0078D4"/>
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                
+                                    <!-- Status: ON -> Show DISCONNECT (Red) -->
+                                    <DataTrigger Binding="{Binding Status}" Value="Connected">
+                                        <Setter Property="Content" Value="{Binding ButtonText}"/>
+                                        <Setter Property="Background" Value="#FFDC3545"/>
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
             </TabItem>
             
@@ -423,13 +449,6 @@
                                     Margin="0,0,10,0"
                                     MinWidth="70"
                                     Style="{StaticResource ButtonStyle}"/>
-                
-                            <Button Content="Load Template" 
-                                    Click="LoadSendMessageClick"
-                                    Background="#FF17A2B8"
-                                    Padding="12,8"
-                                    MinWidth="120"
-                                    Style="{StaticResource ButtonStyle}"/>
                         </StackPanel>
                         
                         <!-- Botão de envio principal -->
@@ -447,59 +466,63 @@
             </TabItem>
         </TabControl>
                 
-        <!-- Status Bar -->
+        <!-- Status Bar Simples -->
         <Border Grid.Row="3" 
-                Background="#FFF0F0F0" 
+                Background="#FFF8F9FA" 
                 BorderBrush="#FFDDDDDD" 
                 BorderThickness="0,1,0,0" 
-                Padding="10">
+                Padding="15,10">
             
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <Label Grid.Column="0" 
-                       Content="Connection Status:" 
-                       FontWeight="SemiBold" 
-                       VerticalAlignment="Center"/>
+                <!-- Indicador Visual + Label -->
+                <StackPanel Grid.Column="0" 
+                           Orientation="Horizontal" 
+                           VerticalAlignment="Center">
+                    <Ellipse Width="10" Height="10" 
+                             Margin="0,0,10,0"
+                             VerticalAlignment="Center">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="#FFDC3545"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="Connected">
+                                        <Setter Property="Fill" Value="#FF28A745"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    
+                    <TextBlock Text="Connection" 
+                               FontWeight="SemiBold" 
+                               VerticalAlignment="Center"
+                               Foreground="#FF495057"/>
+                </StackPanel>
                        
-                <Border Grid.Column="1" 
-                        CornerRadius="3"
-                        MinWidth="60"
-                        HorizontalAlignment="Left">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Background" Value="#FFFF4444"/>
+                <!-- Status Text -->
+                <TextBlock Grid.Column="1" 
+                           Text="{Binding StatusText}" 
+                           FontWeight="Bold"
+                           FontSize="14"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#FFDC3545"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding Status}" Value="ON">
-                                    <Setter Property="Background" Value="#FF44AA44"/>
+                                <DataTrigger Binding="{Binding Status}" Value="Connected">
+                                    <Setter Property="Foreground" Value="#FF28A745"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </Border.Style>
-                    <Label Content="{Binding Status}" 
-                           FontWeight="Bold"
-                           FontSize="14"
-                           Padding="10,5"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="White"
-                           Background="Transparent"/>
-                </Border>
-                
-                <!-- Informações adicionais -->
-                <StackPanel Grid.Column="3" 
-                           Orientation="Horizontal" 
-                           VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status}" 
-                               Foreground="#FF666666" 
-                               VerticalAlignment="Center"
-                               Margin="10,0"/>
-                </StackPanel>
+                    </TextBlock.Style>
+                </TextBlock>
             </Grid>
         </Border>
     </Grid>
