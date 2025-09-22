@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using FixSender5.FixEngine;
 using NLog;
 using QuickFix;
@@ -48,7 +49,8 @@ public partial class MainWindow : INotifyPropertyChanged
     private CancellationTokenSource _cts;
     
     private Acceptor? _acceptor;
-    private Initiator? _initiator; 
+    private Initiator? _initiator;
+
     public ObservableCollection<FixMessage> Messages { get; } = [];
     
     #region Properties
@@ -131,7 +133,6 @@ public partial class MainWindow : INotifyPropertyChanged
         {
             if (value == _messageToSend) return;
             _messageToSend = value;
-            OnPropertyChanged(nameof(MessageValidationText));
             OnPropertyChanged(nameof(ValidationColor));
             OnPropertyChanged(nameof(CanSendMessage));
         }
@@ -149,16 +150,46 @@ public partial class MainWindow : INotifyPropertyChanged
         }
     }
     
+    private string _messageValidationText = string.Empty;
     public string MessageValidationText
     {
-        get
+        get =>
+            string.IsNullOrEmpty(MessageToSend)
+                ? string.Empty 
+                : _messageValidationText;
+        set
         {
-            if (string.IsNullOrWhiteSpace(MessageToSend))
-                return "";
-            
-            return MessageToSend.Contains("35=") 
-                ? "✓ Valid FIX structure detected" 
-                : "⚠ No MsgType (35) found";
+            if (value == _messageValidationText) return;
+            _messageValidationText = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    private ulong _inSeqNum = 1;
+    public ulong InSeqNum
+    {
+        get => _inSeqNum;
+        set
+        {
+            if (_inSeqNum != value)
+            {
+                _inSeqNum = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private ulong _outSeqNum = 1;
+    public ulong OutSeqNum
+    {
+        get => _outSeqNum;
+        set
+        {
+            if (_outSeqNum != value)
+            {
+                _outSeqNum = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -240,6 +271,13 @@ public partial class MainWindow : INotifyPropertyChanged
         var message = ParseFixMessage(rawMessage, MessageDirection.Outgoing);
         Dispatcher.Invoke(() => Messages.Add(message));
     }
+
+    private void OnChangeSeqNum((ulong, ulong) seqNums)
+    {
+        var (inSeqNum, outSeqNum) = seqNums;
+        InSeqNum = inSeqNum;
+        OutSeqNum = outSeqNum;
+    }
     
     private FixMessage ParseFixMessage(Message rawMessage, MessageDirection direction)
     {
@@ -309,24 +347,26 @@ public partial class MainWindow : INotifyPropertyChanged
                     _acceptor.OnSessionLogout += OnSessionLogout;
                     _acceptor.OnInboundMessage += OnInboundMessage;
                     _acceptor.OnOutboundMessage += OnOutboundMessage;
+                    _acceptor.OnChangeSeqNum += OnChangeSeqNum;
                     await Task.Run(() => _acceptor.Start(_cts.Token), _cts.Token);
                     _logger.Info("Acceptor stopped!");
                     break;
                 }
                 case ConnectionType.Initiator:
                 {
-                    var initiator = new Initiator()
+                    _initiator = new Initiator()
                     {
                         Host = Host,
                         Port = Port,
                         SenderCompId = Sender,
                         TargetCompId = Target,
                     };
-                    initiator.OnSessionLogon += OnSessionLogon;
-                    initiator.OnSessionLogout += OnSessionLogout;
-                    initiator.OnInboundMessage += OnInboundMessage;
-                    initiator.OnOutboundMessage += OnOutboundMessage;
-                    await Task.Run(() => initiator.Start(_cts.Token), _cts.Token);
+                    _initiator.OnSessionLogon += OnSessionLogon;
+                    _initiator.OnSessionLogout += OnSessionLogout;
+                    _initiator.OnInboundMessage += OnInboundMessage;
+                    _initiator.OnOutboundMessage += OnOutboundMessage;
+                    _initiator.OnChangeSeqNum += OnChangeSeqNum;
+                    await Task.Run(() => _initiator.Start(_cts.Token), _cts.Token);
                     _logger.Info("Initiator stopped!");
                     break;
                 }
@@ -341,6 +381,28 @@ public partial class MainWindow : INotifyPropertyChanged
         catch (Exception e)
         {
             _logger.Error("Acceptor ERROR: {error}", e.Message);
+        }
+    }
+    
+    private void OnResetSeqNumClick(object sender, RoutedEventArgs e)
+    {
+        // Reset para 1
+        InSeqNum = 1;
+        OutSeqNum = 1;
+        // alterar na sessão
+    }
+
+    private void OnSetSeqNumClick(object sender, RoutedEventArgs e)
+    {
+        // Abrir janela para definir novos valores
+        var setSeqNumWindow = new SetSeqNumWindow(
+            InSeqNum, 
+            OutSeqNum);
+    
+        if (setSeqNumWindow.ShowDialog() == true)
+        {
+            InSeqNum = setSeqNumWindow.NewInSeqNum;
+            OutSeqNum = setSeqNumWindow.NewOutSeqNum;
         }
     }
 
@@ -390,15 +452,16 @@ public partial class MainWindow : INotifyPropertyChanged
             _logger.Info("Attempting to send FIX message");
         
             // Processar mensagem antes de enviar
-            var processedMessage = ProcessMessageForSending(MessageToSend);
+            var processedMessage = ProcessMessageForSending(MessageToSend.Trim());
             if (processedMessage == null)
             {
-                MessageToSend = "Error";
+                MessageValidationText = "⚠ Invalid FIX message";
                 return;
             }
         
             // Aqui você implementaria o envio real da mensagem
             _acceptor?.SendMessage(processedMessage);
+            _initiator?.SendMessage(processedMessage);
         
             // Limpar campo após envio bem-sucedido
             MessageToSend = string.Empty;
@@ -417,6 +480,12 @@ public partial class MainWindow : INotifyPropertyChanged
     {
         try
         {
+            if (message.Contains('|'))
+                message = message.Replace("|", Message.SOH.ToString());
+            else if (message.Contains("^A"))
+                message = message.Replace("^A", Message.SOH.ToString());
+            else if (message.Contains('�'))
+                message = message.Replace("\ufffd", Message.SOH.ToString());
             return new Message(message);
         }
         catch (Exception ex)

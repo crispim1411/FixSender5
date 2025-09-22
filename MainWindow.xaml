@@ -466,26 +466,19 @@
             </TabItem>
         </TabControl>
                 
-        <!-- Status Bar Simples -->
+        <!-- Status Bar Completa com Sequence Numbers -->
         <Border Grid.Row="3" 
                 Background="#FFF8F9FA" 
                 BorderBrush="#FFDDDDDD" 
                 BorderThickness="0,1,0,0" 
                 Padding="15,10">
             
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 
-                <!-- Indicador Visual + Label -->
-                <StackPanel Grid.Column="0" 
-                           Orientation="Horizontal" 
-                           VerticalAlignment="Center">
+                <!-- Connection Status -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="10" Height="10" 
-                             Margin="0,0,10,0"
+                             Margin="0,0,8,0"
                              VerticalAlignment="Center">
                         <Ellipse.Style>
                             <Style TargetType="Ellipse">
@@ -500,30 +493,75 @@
                     </Ellipse>
                     
                     <TextBlock Text="Connection" 
-                               FontWeight="SemiBold" 
+                               FontWeight="SemiBold"
+                               FontSize="12"
                                VerticalAlignment="Center"
-                               Foreground="#FF495057"/>
+                               Margin="0,0,20,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#FFDC3545"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="Connected">
+                                        <Setter Property="Foreground" Value="#FF28A745"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
-                       
-                <!-- Status Text -->
-                <TextBlock Grid.Column="1" 
-                           Text="{Binding StatusText}" 
-                           FontWeight="Bold"
-                           FontSize="14"
-                           VerticalAlignment="Center"
-                           Margin="8,0,0,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="#FFDC3545"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Status}" Value="Connected">
-                                    <Setter Property="Foreground" Value="#FF28A745"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Grid>
+                
+                <!-- In SeqNum -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="In:" 
+                               FontWeight="SemiBold" 
+                               Foreground="#FF495057"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding InSeqNum}" 
+                               FontWeight="Bold"
+                               Foreground="#FF0078D4"
+                               Margin="5,0,0,0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- Out SeqNum -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="Out:" 
+                               FontWeight="SemiBold" 
+                               Foreground="#FF495057"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding OutSeqNum}" 
+                               FontWeight="Bold"
+                               Foreground="#FF0078D4"
+                               Margin="5,0,0,0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <!-- Reset Button -->
+                <Button Content="Reset" 
+                        Click="OnResetSeqNumClick"
+                        Background="#FFDC3545"
+                        Foreground="White"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="0,0,8,0"
+                        Cursor="Hand"
+                        ToolTip="Reset sequence numbers to 1"/>
+                        
+                <!-- Set Button -->
+                <Button Content="Set" 
+                        Click="OnSetSeqNumClick"
+                        Background="#FF0078D4"
+                        Foreground="White"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Cursor="Hand"
+                        ToolTip="Set custom sequence numbers"/>
+                        
+            </StackPanel>
         </Border>
     </Grid>
 </Window>
