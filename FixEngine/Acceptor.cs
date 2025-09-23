@@ -38,11 +38,13 @@ public class Acceptor : IApplication
 
     public void ToAdmin(Message message, SessionID sessionId)
     {
+        OnOutboundMessage?.Invoke(message);
         _logger.Info($"[ToAdmin] Acceptor - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
     public void FromAdmin(Message message, SessionID sessionId)
     {
+        OnInboundMessage?.Invoke(message);
         _logger.Info($"[FromAdmin] Acceptor - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
@@ -92,7 +94,7 @@ public class Acceptor : IApplication
         return messageString.Replace("\x01", "|");
     }
     
-    private void UpdateSequenceNumbers(object sender, EventArgs e)
+    private void UpdateSequenceNumbers(object? sender, EventArgs e)
     {
         if (_currentSessionID == null) return;
         

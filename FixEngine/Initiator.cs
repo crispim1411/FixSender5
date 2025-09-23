@@ -14,10 +14,10 @@ public class Initiator : IApplication
     private readonly DispatcherTimer _seqNumTimer;
     private SessionID? _currentSessionID;
     
-    public string SenderCompId { get; set; }
-    public string TargetCompId { get; set; }
-    public int Port { get; set; }
-    public string Host { get; set; }
+    public string SenderCompId { get; init; }
+    public string TargetCompId { get; init; }
+    public int Port { get; init; }
+    public string Host { get; init; }
     
     public event Action? OnSessionLogon;
     public event Action? OnSessionLogout;
@@ -36,11 +36,13 @@ public class Initiator : IApplication
 
     public void ToAdmin(Message message, SessionID sessionId)
     {
+        OnOutboundMessage?.Invoke(message);
         _logger.Info($"[ToAdmin] Initiator - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
     public void FromAdmin(Message message, SessionID sessionId)
     {
+        OnInboundMessage?.Invoke(message);
         _logger.Info($"[FromAdmin] Initiator - Session: {sessionId}, Message: {FormatMessage(message)}");
     }
 
@@ -90,7 +92,7 @@ public class Initiator : IApplication
         return messageString.Replace("\x01", "|");
     }
     
-    private void UpdateSequenceNumbers(object sender, EventArgs e)
+    private void UpdateSequenceNumbers(object? sender, EventArgs e)
     {
         if (_currentSessionID == null) return;
         
