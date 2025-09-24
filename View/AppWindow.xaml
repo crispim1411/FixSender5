@@ -9,6 +9,7 @@
         mc:Ignorable="d">
 
     <UserControl.Resources>
+        <vm:StatusToBooleanConverter x:Key="StatusToBooleanConverter"/>
         <!-- Estilos para os controles -->
         <Style x:Key="LabelStyle" TargetType="Label">
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -539,6 +540,7 @@
                 <!-- Reset Button -->
                 <Button Content="Reset" 
                         Click="OnResetSeqNumClick"
+                        IsEnabled="{Binding Status, Converter={StaticResource StatusToBooleanConverter}}"
                         Background="#FFDC3545"
                         Foreground="White"
                         FontSize="11"
@@ -552,6 +554,7 @@
                 <!-- Set Button -->
                 <Button Content="Set" 
                         Click="OnSetSeqNumClick"
+                        IsEnabled="{Binding Status, Converter={StaticResource StatusToBooleanConverter}}"
                         Background="#FF0078D4"
                         Foreground="White"
                         FontSize="11"

@@ -151,11 +151,9 @@ public class AppViewModel : INotifyPropertyChanged
         get => _inSeqNum;
         set
         {
-            if (_inSeqNum != value)
-            {
-                _inSeqNum = value;
-                OnPropertyChanged();
-            }
+            if (_inSeqNum == value) return;
+            _inSeqNum = value;
+            OnPropertyChanged();
         }
     }
 
@@ -166,11 +164,9 @@ public class AppViewModel : INotifyPropertyChanged
         get => _outSeqNum;
         set
         {
-            if (_outSeqNum != value)
-            {
-                _outSeqNum = value;
-                OnPropertyChanged();
-            }
+            if (_outSeqNum == value) return;
+            _outSeqNum = value;
+            OnPropertyChanged();
         }
     }
 
@@ -236,7 +232,7 @@ public class AppViewModel : INotifyPropertyChanged
         {
             case ConnectionState.Disconnected:
                 Status = ConnectionState.Connecting;
-                Connect();
+                Connect(InSeqNum, OutSeqNum);
                 break;
             case ConnectionState.Connected:
             case ConnectionState.Connecting:
@@ -247,23 +243,33 @@ public class AppViewModel : INotifyPropertyChanged
 
     public void OnResetSeqNum()
     {
-        // Reset para 1
-        InSeqNum = 1;
-        OutSeqNum = 1;
-        // alterar na sessão
+        if (Status == ConnectionState.Disconnected)
+        {
+            InSeqNum = 1;
+            OutSeqNum = 1;
+        }
+        else if (Status == ConnectionState.Connected)
+        {
+            _acceptor?.SetSeqNums(1, 1);
+            _initiator?.SetSeqNums(1, 1);
+        }
     }
 
     public void OnSetSeqNum()
     {
-        // Abrir janela para definir novos valores
-        var setSeqNumWindow = new SetSeqNumWindow(
-            InSeqNum, 
-            OutSeqNum);
-
-        if (setSeqNumWindow.ShowDialog() != true) return;
-        
-        InSeqNum = setSeqNumWindow.NewInSeqNum;
-        OutSeqNum = setSeqNumWindow.NewOutSeqNum;
+        var setSeqNumWindow = new SetSeqNumWindow(InSeqNum, OutSeqNum);
+        if (setSeqNumWindow.ShowDialog() != true) 
+            return;
+        if (Status == ConnectionState.Disconnected)
+        {
+            InSeqNum = setSeqNumWindow.NewInSeqNum;
+            OutSeqNum = setSeqNumWindow.NewOutSeqNum;
+        }
+        else if (Status == ConnectionState.Connected)
+        {
+            _acceptor?.SetSeqNums(setSeqNumWindow.NewInSeqNum, setSeqNumWindow.NewOutSeqNum);
+            _initiator?.SetSeqNums(setSeqNumWindow.NewInSeqNum, setSeqNumWindow.NewOutSeqNum);
+        }
     }
 
     public void OnWindowClose()
@@ -427,7 +433,7 @@ public class AppViewModel : INotifyPropertyChanged
         Status = ConnectionState.Disconnected;
     }
 
-    private async void Connect()
+    private async void Connect(ulong inSeqNum, ulong outSeqNum)
     {
         try
         {
@@ -450,7 +456,7 @@ public class AppViewModel : INotifyPropertyChanged
                     _acceptor.OnInboundMessage += OnInboundMessage;
                     _acceptor.OnOutboundMessage += OnOutboundMessage;
                     _acceptor.OnChangeSeqNum += OnChangeSeqNum;
-                    await Task.Run(() => _acceptor.Start(_cts.Token), _cts.Token);
+                    await Task.Run(() => _acceptor.Start(inSeqNum, outSeqNum, _cts.Token), _cts.Token);
                     _logger.Info("Acceptor stopped!");
                     break;
                 }
@@ -468,7 +474,7 @@ public class AppViewModel : INotifyPropertyChanged
                     _initiator.OnInboundMessage += OnInboundMessage;
                     _initiator.OnOutboundMessage += OnOutboundMessage;
                     _initiator.OnChangeSeqNum += OnChangeSeqNum;
-                    await Task.Run(() => _initiator.Start(_cts.Token), _cts.Token);
+                    await Task.Run(() => _initiator.Start(inSeqNum, outSeqNum, _cts.Token), _cts.Token);
                     _logger.Info("Initiator stopped!");
                     break;
                 }

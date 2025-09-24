@@ -9,7 +9,6 @@ namespace FixSender5.FixEngine;
 
 public class Initiator : IApplication
 {
-    private const string _configPath = "Config/initiator.cfg";
     private readonly Logger _logger = LogManager.GetCurrentClassLogger();
     private readonly DispatcherTimer _seqNumTimer;
     private SessionID? _currentSessionID;
@@ -29,7 +28,7 @@ public class Initiator : IApplication
     {
         _seqNumTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(1) 
+            Interval = TimeSpan.FromSeconds(2) 
         };
         _seqNumTimer.Tick += UpdateSequenceNumbers;
     }
@@ -92,6 +91,15 @@ public class Initiator : IApplication
         return messageString.Replace("\x01", "|");
     }
     
+    public void SetSeqNums(ulong inSeqNum, ulong outSeqNum)
+    {
+        if (_currentSessionID == null) return;
+        var session = Session.LookupSession(_currentSessionID);
+        if (session == null) return;
+        session.NextSenderMsgSeqNum = inSeqNum;
+        session.NextTargetMsgSeqNum = outSeqNum;
+    }
+    
     private void UpdateSequenceNumbers(object? sender, EventArgs e)
     {
         if (_currentSessionID == null) return;
@@ -114,7 +122,7 @@ public class Initiator : IApplication
         }
     }
     
-    public async Task Start(CancellationToken cancellationToken)
+    public async Task Start(ulong inSeqNum, ulong outSeqNum, CancellationToken cancellationToken)
     {
         var settings = new SessionSettings();
         SetValues(settings);
@@ -127,6 +135,16 @@ public class Initiator : IApplication
         {
             _logger.Info("Iniciando o Initiator...");
             initiator.Start();
+            
+            foreach (var sessionId in initiator.GetSessionIDs())
+            {
+                var session = Session.LookupSession(sessionId);
+                if (session != null)
+                {
+                    session.NextSenderMsgSeqNum = inSeqNum;
+                    session.NextTargetMsgSeqNum = outSeqNum;
+                }
+            }
 
             await Task.Delay(Timeout.Infinite, cancellationToken);
         }
@@ -136,9 +154,9 @@ public class Initiator : IApplication
         }
         finally
         {
+            _seqNumTimer?.Stop();
             initiator.Stop();
             initiator.Dispose();
-            _seqNumTimer?.Stop();
         }
     }
     
@@ -174,6 +192,5 @@ public class Initiator : IApplication
 
         var sId = new SessionID("FIXT.1.1", SenderCompId, TargetCompId);
         settings.Set(sId, sessionDict);
-
     }
 }

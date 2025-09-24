@@ -1,8 +1,6 @@
 using System.Windows.Threading;
 using NLog;
 using QuickFix;
-using QuickFix.Fields;
-using QuickFix.FIX50;
 using QuickFix.Logger;
 using QuickFix.Store;
 using Message = QuickFix.Message;
@@ -12,7 +10,6 @@ namespace FixSender5.FixEngine;
 public class Acceptor : IApplication
 {
     private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-    private const string _configPath = "Config/acceptor.cfg";
     private readonly DispatcherTimer _seqNumTimer;
     private SessionID? _currentSessionID;
     
@@ -31,7 +28,7 @@ public class Acceptor : IApplication
     {
         _seqNumTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(1) 
+            Interval = TimeSpan.FromSeconds(2) 
         };
         _seqNumTimer.Tick += UpdateSequenceNumbers;
     }
@@ -91,7 +88,16 @@ public class Acceptor : IApplication
     {
         // Converte a mensagem FIX para um formato customizado com o separador "|"
         var messageString = message.ToString();
-        return messageString.Replace("\x01", "|");
+        return messageString.Replace(Message.SOH.ToString(), "|");
+    }
+
+    public void SetSeqNums(ulong inSeqNum, ulong outSeqNum)
+    {
+        if (_currentSessionID == null) return;
+        var session = Session.LookupSession(_currentSessionID);
+        if (session == null) return;
+        session.NextSenderMsgSeqNum = inSeqNum;
+        session.NextTargetMsgSeqNum = outSeqNum;
     }
     
     private void UpdateSequenceNumbers(object? sender, EventArgs e)
@@ -104,7 +110,7 @@ public class Acceptor : IApplication
         var inSeqNum = session.NextSenderMsgSeqNum;
         var outSeqNum = session.NextTargetMsgSeqNum;
         OnChangeSeqNum?.Invoke((inSeqNum, outSeqNum));
-    }
+    }   
 
     public void SendMessage(Message message)
     {
@@ -116,7 +122,7 @@ public class Acceptor : IApplication
         }
     }
     
-    public async Task Start(CancellationToken cancellationToken)
+    public async Task Start(ulong inSeqNum, ulong outSeqNum, CancellationToken cancellationToken)
     {
         var settings = new SessionSettings();
         SetValues(settings);
@@ -130,6 +136,16 @@ public class Acceptor : IApplication
             _logger.Info("Iniciando o FIX acceptor...");
             acceptor.Start();
 
+            foreach (var sessionId in acceptor.GetSessionIDs())
+            {
+                var session = Session.LookupSession(sessionId);
+                if (session != null)
+                {
+                    session.NextSenderMsgSeqNum = inSeqNum;
+                    session.NextTargetMsgSeqNum = outSeqNum;
+                }
+            }
+
             await Task.Delay(Timeout.Infinite, cancellationToken);
         }
         catch (OperationCanceledException)
@@ -138,9 +154,9 @@ public class Acceptor : IApplication
         }
         finally
         {
+            _seqNumTimer?.Stop();
             acceptor.Stop();
             acceptor.Dispose();
-            _seqNumTimer?.Stop();
         }
     }
 
